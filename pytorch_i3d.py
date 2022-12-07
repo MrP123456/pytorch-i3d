@@ -186,7 +186,7 @@ class InceptionI3d(nn.Module):
     )
 
     def __init__(self, num_classes=400, spatial_squeeze=True,
-                 final_endpoint='Logits', name='inception_i3d', in_channels=3, dropout_keep_prob=0.5):
+                 final_endpoint='Logits', name='inception_i3d', in_channels=1, dropout_keep_prob=0.5):
         """Initializes I3D model instance.
         Args:
           num_classes: The number of outputs in the logit layer (default 400, which
@@ -323,6 +323,19 @@ class InceptionI3d(nn.Module):
         for end_point in self.VALID_ENDPOINTS:
             if end_point in self.end_points:
                 x = self._modules[end_point](x)  # use _modules to work with dataparallel
+                if end_point == 'Conv3d_2c_3x3':
+                    # [1, 192, 64, 56, 56]
+                    f56 = x
+                elif end_point == 'Mixed_3c':
+                    # [1, 480, 64, 28, 28]
+                    f28 = x
+                elif end_point == 'Mixed_4f':
+                    # [1, 832, 32, 14, 14]
+                    f14 = x
+                elif end_point == 'Mixed_5c':
+                    # [1, 1024, 16, 7, 7]
+                    f7 = x
+
                 print(end_point,x.shape)
 
         x=self.avg_pool(x)
@@ -339,11 +352,14 @@ class InceptionI3d(nn.Module):
         for end_point in self.VALID_ENDPOINTS:
             if end_point in self.end_points:
                 x = self._modules[end_point](x)
+                print(end_point,x.shape)
         return self.avg_pool(x)
 
 
 if __name__ == '__main__':
-    x = torch.randn([1, 3, 128, 224, 224])
-    net=InceptionI3d(400, in_channels=3)
+    # [1, 1, 144, 224, 224]
+    x = torch.randn([1, 1, 144, 224, 224])
+    net=InceptionI3d(400, in_channels=1)
     y=net(x)
+    # y=net.extract_features(x)
     print(y.shape)
